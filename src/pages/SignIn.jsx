@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaApple, FaGoogle } from 'react-icons/fa6';
 import { FiUserPlus } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
 
 const WhiteCoinbaseMark = ({ size = 36 }) => (
     <svg width={size} height={size} viewBox="0 0 58 58" aria-label="Coinbase logo">
@@ -12,9 +13,17 @@ const WhiteCoinbaseMark = ({ size = 36 }) => (
 );
 
 const SignIn = () => {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const from = location.state?.from || '/';
+    const { login } = useAuth();
+
     const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [submitted, setSubmitted] = useState(false);
     const [showSplash, setShowSplash] = useState(true);
+    const [apiError, setApiError] = useState('');
+    const [pending, setPending] = useState(false);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -26,28 +35,44 @@ const SignIn = () => {
         };
     }, []);
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
+        setApiError('');
         setSubmitted(true);
+        if (!isEmailValid || !password) {
+            return;
+        }
+        setPending(true);
+        try {
+            await login(email, password);
+            navigate(from, { replace: true });
+        } catch (err) {
+            setApiError(err.message || 'Sign in failed.');
+        } finally {
+            setPending(false);
+        }
     };
 
     const isEmailValid = /\S+@\S+\.\S+/.test(email);
 
     if (showSplash) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-[#05070d]">
+            <div className="flex min-h-screen items-center justify-center bg-[#05070d] pt-12">
                 <WhiteCoinbaseMark size={58} />
             </div>
         );
     }
 
     return (
-        <div className="flex min-h-screen flex-col bg-[#070b13] text-white">
+        <div className="flex min-h-screen flex-col bg-[#070b13] pt-12 text-white">
             <div className="px-5 pt-4">
                 <WhiteCoinbaseMark size={36} />
             </div>
             <div className="mx-auto flex w-full max-w-[520px] flex-1 flex-col justify-center px-6 py-12">
-                <h1 className="mb-8 text-5xl font-semibold tracking-tight">Sign in to Coinbase</h1>
+                <h1 className="mb-4 text-5xl font-semibold tracking-tight">Sign in to Coinbase</h1>
+                <p className="mb-8 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-[13px] text-amber-100">
+                    Demo app – do not use your real password
+                </p>
 
                 <form className="space-y-4" onSubmit={handleSubmit} noValidate>
                     <div>
@@ -56,6 +81,7 @@ const SignIn = () => {
                             type="email"
                             value={email}
                             onChange={(event) => setEmail(event.target.value)}
+                            autoComplete="email"
                             className="w-full rounded-xl border border-[#3a4252] bg-transparent px-5 py-4 text-[20px] text-white placeholder:text-[#7c8596] focus:border-[#5c8cff] focus:outline-none"
                             placeholder="Your email address"
                         />
@@ -64,8 +90,29 @@ const SignIn = () => {
                         ) : null}
                     </div>
 
-                    <button type="submit" className="w-full rounded-full bg-[#34518a] py-4 text-[20px] font-semibold text-[#0a0f1d] transition hover:bg-[#4063a4]">
-                        Continue
+                    <div>
+                        <label className="mb-2 block text-[16px] font-semibold text-[#dbe3f7]">Password</label>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(event) => setPassword(event.target.value)}
+                            autoComplete="current-password"
+                            className="w-full rounded-xl border border-[#3a4252] bg-transparent px-5 py-4 text-[20px] text-white placeholder:text-[#7c8596] focus:border-[#5c8cff] focus:outline-none"
+                            placeholder="Password"
+                        />
+                        {submitted && !password ? (
+                            <p className="mt-2 text-sm text-red-400">Password is required.</p>
+                        ) : null}
+                    </div>
+
+                    {apiError ? <p className="text-sm text-red-400">{apiError}</p> : null}
+
+                    <button
+                        type="submit"
+                        disabled={pending}
+                        className="w-full rounded-full bg-[#34518a] py-4 text-[20px] font-semibold text-[#0a0f1d] transition hover:bg-[#4063a4] disabled:opacity-60"
+                    >
+                        {pending ? 'Signing in…' : 'Sign in'}
                     </button>
                 </form>
 

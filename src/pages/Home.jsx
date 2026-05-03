@@ -1,5 +1,8 @@
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { cryptoData, learnData } from '../data/mockData';
+import { learnData } from '../data/mockData';
+import { apiFetch } from '../lib/api';
+import { mapCoinFromApi } from '../lib/cryptoMappers';
 import heroImage from '../assets/crypto/images/Hero__4_.avif';
 import advancedImage from '../assets/crypto/images/Advanced.avif';
 import zeroFeesImage from '../assets/crypto/images/zero_fees_us.avif';
@@ -13,6 +16,24 @@ const homeLearnImages = [learnCardOne, learnCardTwo, learnCardThree];
 
 const Home = () => {
   const navigate = useNavigate();
+  const [topCoins, setTopCoins] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await apiFetch('/crypto/gainers');
+        const mapped = (res.data || []).map(mapCoinFromApi).slice(0, 5);
+        if (!cancelled) setTopCoins(mapped);
+      } catch {
+        if (!cancelled) setTopCoins([]);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleHeroSubmit = (event) => {
     event.preventDefault();
@@ -73,11 +94,12 @@ const Home = () => {
             <Link to="/explore" className="text-blue-400 hover:text-blue-300">View all</Link>
           </div>
           <div className="space-y-1">
-            {cryptoData
-              .slice()
-              .sort((a, b) => b.change - a.change)
-              .slice(0, 5)
-              .map((coin) => (
+            {topCoins.length === 0 ? (
+              <p className="px-3 py-6 text-center text-sm text-gray-400">
+                No listings yet. Seed the API or add coins from your profile after signing in.
+              </p>
+            ) : null}
+            {topCoins.map((coin) => (
                 <Link
                   key={coin.id}
                   to={`/assets/${coin.id}`}

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { FiCheck, FiCode, FiUser, FiUsers } from 'react-icons/fi';
 import { FaApple, FaGoogle } from 'react-icons/fa6';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const WhiteCoinbaseMark = ({ size = 36 }) => (
     <svg width={size} height={size} viewBox="0 0 58 58" aria-label="Coinbase logo">
@@ -12,11 +13,18 @@ const WhiteCoinbaseMark = ({ size = 36 }) => (
 );
 
 const SignUp = () => {
+    const navigate = useNavigate();
+    const { register } = useAuth();
+
     const [showSplash, setShowSplash] = useState(true);
     const [selectedType, setSelectedType] = useState('personal');
     const [showEmailStep, setShowEmailStep] = useState(false);
+    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [submitted, setSubmitted] = useState(false);
+    const [apiError, setApiError] = useState('');
+    const [pending, setPending] = useState(false);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -28,16 +36,29 @@ const SignUp = () => {
         };
     }, []);
 
-    const handleContinue = (event) => {
+    const handleContinue = async (event) => {
         event.preventDefault();
+        setApiError('');
         setSubmitted(true);
+        if (!name.trim() || !isEmailValid || password.length < 6) {
+            return;
+        }
+        setPending(true);
+        try {
+            await register(name.trim(), email, password);
+            navigate('/', { replace: true });
+        } catch (err) {
+            setApiError(err.message || 'Could not create account.');
+        } finally {
+            setPending(false);
+        }
     };
 
     const isEmailValid = /\S+@\S+\.\S+/.test(email);
 
     if (showSplash) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-[#05070d]">
+            <div className="flex min-h-screen items-center justify-center bg-[#05070d] pt-12">
                 <WhiteCoinbaseMark size={58} />
             </div>
         );
@@ -65,7 +86,7 @@ const SignUp = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-[#070b13] text-white">
+        <div className="min-h-screen bg-[#070b13] pt-12 text-white">
             <div className="px-5 pt-4">
                 <WhiteCoinbaseMark size={36} />
             </div>
@@ -73,6 +94,9 @@ const SignUp = () => {
             {!showEmailStep ? (
                 <div className="mx-auto mt-20 w-full max-w-[520px] px-6">
                     <h1 className="text-5xl font-semibold leading-tight tracking-tight">What kind of account are you creating?</h1>
+                    <p className="mt-4 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-[13px] text-amber-100">
+                        Demo app – do not use your real password
+                    </p>
 
                     <div className="mt-8 space-y-4">
                         {accountTypes.map((type) => {
@@ -116,22 +140,60 @@ const SignUp = () => {
                 <div className="mx-auto mt-16 w-full max-w-[470px] px-6">
                     <h1 className="text-5xl font-semibold tracking-tight">Create your account</h1>
                     <p className="mt-4 max-w-md text-[18px] text-[#8f9ab0]">Access all that Coinbase has to offer with a single account.</p>
+                    <p className="mt-4 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-[13px] text-amber-100">
+                        Demo app – do not use your real password
+                    </p>
 
                     <form className="mt-8 space-y-4" onSubmit={handleContinue} noValidate>
+                        <div>
+                            <label className="mb-2 block text-[16px] font-semibold text-[#dbe3f7]">Full name</label>
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={(event) => setName(event.target.value)}
+                                autoComplete="name"
+                                className="w-full rounded-xl border border-[#3a4252] bg-transparent px-5 py-4 text-[20px] text-white placeholder:text-[#7c8596] focus:border-[#5c8cff] focus:outline-none"
+                                placeholder="Your name"
+                            />
+                            {submitted && !name.trim() ? (
+                                <p className="mt-2 text-sm text-red-400">Name is required.</p>
+                            ) : null}
+                        </div>
                         <div>
                             <label className="mb-2 block text-[16px] font-semibold text-[#dbe3f7]">Email</label>
                             <input
                                 type="email"
                                 value={email}
                                 onChange={(event) => setEmail(event.target.value)}
+                                autoComplete="email"
                                 className="w-full rounded-xl border border-[#3a4252] bg-transparent px-5 py-4 text-[20px] text-white placeholder:text-[#7c8596] focus:border-[#5c8cff] focus:outline-none"
                                 placeholder="Your email address"
                             />
                             {submitted && !isEmailValid ? <p className="mt-2 text-sm text-red-400">Please enter a valid email address.</p> : null}
                         </div>
+                        <div>
+                            <label className="mb-2 block text-[16px] font-semibold text-[#dbe3f7]">Password</label>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(event) => setPassword(event.target.value)}
+                                autoComplete="new-password"
+                                className="w-full rounded-xl border border-[#3a4252] bg-transparent px-5 py-4 text-[20px] text-white placeholder:text-[#7c8596] focus:border-[#5c8cff] focus:outline-none"
+                                placeholder="At least 6 characters"
+                            />
+                            {submitted && password.length < 6 ? (
+                                <p className="mt-2 text-sm text-red-400">Password must be at least 6 characters.</p>
+                            ) : null}
+                        </div>
 
-                        <button type="submit" className="w-full rounded-full bg-[#34518a] py-4 text-[20px] font-semibold text-[#0a0f1d] transition hover:bg-[#4063a4]">
-                            Continue
+                        {apiError ? <p className="text-sm text-red-400">{apiError}</p> : null}
+
+                        <button
+                            type="submit"
+                            disabled={pending}
+                            className="w-full rounded-full bg-[#34518a] py-4 text-[20px] font-semibold text-[#0a0f1d] transition hover:bg-[#4063a4] disabled:opacity-60"
+                        >
+                            {pending ? 'Creating account…' : 'Create account'}
                         </button>
                     </form>
 

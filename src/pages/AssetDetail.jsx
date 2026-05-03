@@ -1,20 +1,65 @@
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FiArrowLeft as ArrowLeft } from 'react-icons/fi';
-import { cryptoData } from '../data/mockData';
+import { apiFetch } from '../lib/api';
+import { mapCoinFromApi } from '../lib/cryptoMappers';
 
 const AssetDetail = () => {
     const { id } = useParams();
-    const coin = cryptoData.find((item) => item.id === id) || {
-        id,
-        name: id,
-        symbol: String(id || '---').toUpperCase(),
-        price: 0,
-        change: 0,
-        marketCap: '$0',
-        volume: '$0',
-        circulatingSupply: 'N/A',
-        color: 'bg-blue-600',
-    };
+    const [coin, setCoin] = useState(null);
+    const [loadError, setLoadError] = useState(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        async function load() {
+            setLoadError(null);
+            try {
+                const res = await apiFetch('/crypto');
+                const list = (res.data || []).map(mapCoinFromApi);
+                const found = list.find((c) => c.id === id);
+                if (!cancelled) {
+                    setCoin(
+                        found || {
+                            id,
+                            name: id || 'Unknown',
+                            symbol: String(id || '---').toUpperCase(),
+                            price: 0,
+                            change: 0,
+                            marketCap: '$0',
+                            volume: '$0',
+                            circulatingSupply: 'N/A',
+                            color: 'bg-blue-600',
+                        }
+                    );
+                }
+            } catch (e) {
+                if (!cancelled) setLoadError(e.message || 'Failed to load asset.');
+            }
+        }
+        load();
+        return () => {
+            cancelled = true;
+        };
+    }, [id]);
+
+    if (loadError) {
+        return (
+            <div className="mx-auto max-w-7xl px-6 py-12">
+                <p className="text-red-600">{loadError}</p>
+                <Link to="/explore" className="mt-4 inline-block text-blue-600">
+                    Back to explore
+                </Link>
+            </div>
+        );
+    }
+
+    if (!coin) {
+        return (
+            <div className="mx-auto max-w-7xl px-6 py-12">
+                <p className="text-[#5b616e]">Loading…</p>
+            </div>
+        );
+    }
 
     const isPositive = coin.change >= 0;
 
@@ -74,7 +119,7 @@ const AssetDetail = () => {
                             </div>
                             <div>
                                 <p className="mb-1 text-sm text-gray-500">Popularity</p>
-                                <p className="text-lg font-semibold">#{cryptoData.findIndex((item) => item.id === coin.id) + 1 || '--'}</p>
+                                <p className="text-lg font-semibold">—</p>
                             </div>
                         </div>
                     </div>

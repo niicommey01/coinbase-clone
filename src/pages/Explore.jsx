@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import CryptoTable from '../components/crypto/CryptoTable';
-import { cryptoData } from '../data/mockData';
+import { apiFetch } from '../lib/api';
+import { mapCoinFromApi } from '../lib/cryptoMappers';
 
 const FILTERS = {
     all: 'All assets',
@@ -11,28 +12,56 @@ const FILTERS = {
 const Explore = () => {
     const [search, setSearch] = useState('');
     const [selectedFilter, setSelectedFilter] = useState('all');
+    const [coins, setCoins] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(null);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function load() {
+            setLoading(true);
+            setLoadError(null);
+            try {
+                if (selectedFilter === 'losers') {
+                    const res = await apiFetch('/crypto');
+                    const mapped = (res.data || []).map(mapCoinFromApi);
+                    const losers = mapped
+                        .filter((c) => c.change < 0)
+                        .sort((a, b) => a.change - b.change);
+                    if (!cancelled) setCoins(losers);
+                } else if (selectedFilter === 'gainers') {
+                    const res = await apiFetch('/crypto/gainers');
+                    if (!cancelled) setCoins((res.data || []).map(mapCoinFromApi));
+                } else {
+                    const res = await apiFetch('/crypto');
+                    if (!cancelled) setCoins((res.data || []).map(mapCoinFromApi));
+                }
+            } catch (e) {
+                if (!cancelled) {
+                    setLoadError(e.message || 'Could not load markets.');
+                    setCoins([]);
+                }
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        }
+
+        load();
+        return () => {
+            cancelled = true;
+        };
+    }, [selectedFilter]);
 
     const filteredData = useMemo(() => {
         const query = search.trim().toLowerCase();
-
-        let base = [...cryptoData];
-
-        if (selectedFilter === 'gainers') {
-            base = base.filter((coin) => coin.change > 0).sort((a, b) => b.change - a.change);
-        }
-
-        if (selectedFilter === 'losers') {
-            base = base.filter((coin) => coin.change < 0).sort((a, b) => a.change - b.change);
-        }
-
-        if (!query) {
-            return base;
-        }
-
-        return base.filter(
-            (coin) => coin.name.toLowerCase().includes(query) || coin.symbol.toLowerCase().includes(query),
+        if (!query) return coins;
+        return coins.filter(
+            (coin) =>
+                coin.name.toLowerCase().includes(query) ||
+                coin.symbol.toLowerCase().includes(query),
         );
-    }, [search, selectedFilter]);
+    }, [search, coins]);
 
     return (
         <div className="cb-reveal mx-auto max-w-[1180px] px-6 py-12" style={{ '--reveal-delay': '40ms' }}>
@@ -64,8 +93,20 @@ const Explore = () => {
                 </div>
             </div>
 
+            {loadError ? (
+                <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    {loadError} Make sure the API is running and{' '}
+                    <code className="rounded bg-red-100 px-1">VITE_API_URL</code> is set in{' '}
+                    <code className="rounded bg-red-100 px-1">.env</code>.
+                </p>
+            ) : null}
+
             <div className="cb-hover-rise overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                <CryptoTable data={filteredData} />
+                {loading ? (
+                    <p className="p-8 text-center text-[#5b616e]">Loading markets…</p>
+                ) : (
+                    <CryptoTable data={filteredData} />
+                )}
             </div>
         </div>
     );

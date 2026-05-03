@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import {
   FiArrowRight,
   FiBarChart2,
@@ -177,7 +178,9 @@ const languageItems = [
   { language: 'Svenska', region: 'Sweden' },
 ];
 
-const Navbar = () => {
+export default function Navbar() {
+  const { user, logout } = useAuth();
+
   const [isOpen, setIsOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState(null);
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
@@ -221,7 +224,7 @@ const Navbar = () => {
   };
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 border-b border-gray-200 bg-white" onMouseLeave={() => setActiveMenu(null)}>
+    <header className="fixed left-0 right-0 top-12 z-50 border-b border-gray-200 bg-white" onMouseLeave={() => setActiveMenu(null)}>
       <nav className="mx-auto flex h-16 w-full max-w-[1180px] items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-6">
           <Link to="/" className="flex items-center">
@@ -301,12 +304,32 @@ const Navbar = () => {
             ) : null}
           </div>
 
-          <NavLink to="/signin" className="cb-link-underline px-2 text-[12px] font-semibold text-[#0a0b0d] hover:text-[#0052ff]">
-            Sign in
-          </NavLink>
-          <NavLink to="/signup" className="rounded-full bg-[#0052ff] px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-[#0046d5]">
-            Sign up
-          </NavLink>
+          {user ? (
+            <>
+              <NavLink
+                to="/profile"
+                className="cb-link-underline px-2 text-[12px] font-semibold text-[#0a0b0d] hover:text-[#0052ff]"
+              >
+                Profile
+              </NavLink>
+              <button
+                type="button"
+                onClick={() => void logout()}
+                className="rounded-full border border-gray-300 px-4 py-2 text-[12px] font-semibold text-[#0a0b0d] transition-colors hover:bg-gray-50"
+              >
+                Sign out
+              </button>
+            </>
+          ) : (
+            <>
+              <NavLink to="/signin" className="cb-link-underline px-2 text-[12px] font-semibold text-[#0a0b0d] hover:text-[#0052ff]">
+                Sign in
+              </NavLink>
+              <NavLink to="/signup" className="rounded-full bg-[#0052ff] px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-[#0046d5]">
+                Sign up
+              </NavLink>
+            </>
+          )}
         </div>
 
         <button className="p-2 md:hidden" aria-label="Toggle menu" onClick={() => setIsOpen((previous) => !previous)}>
@@ -369,17 +392,35 @@ const Navbar = () => {
                 {item.label}
               </NavLink>
             ))}
-            <NavLink to="/signin" className="text-sm font-semibold text-[#0a0b0d]" onClick={() => setIsOpen(false)}>
-              Sign in
-            </NavLink>
-            <NavLink to="/signup" className="w-fit rounded-full bg-[#0052ff] px-4 py-2 text-sm font-semibold text-white" onClick={() => setIsOpen(false)}>
-              Sign up
-            </NavLink>
+            {user ? (
+              <>
+                <NavLink to="/profile" className="text-sm font-semibold text-[#0a0b0d]" onClick={() => setIsOpen(false)}>
+                  Profile
+                </NavLink>
+                <button
+                  type="button"
+                  className="w-fit text-left text-sm font-semibold text-[#0a0b0d]"
+                  onClick={() => {
+                    setIsOpen(false);
+                    void logout();
+                  }}
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <>
+                <NavLink to="/signin" className="text-sm font-semibold text-[#0a0b0d]" onClick={() => setIsOpen(false)}>
+                  Sign in
+                </NavLink>
+                <NavLink to="/signup" className="w-fit rounded-full bg-[#0052ff] px-4 py-2 text-sm font-semibold text-white" onClick={() => setIsOpen(false)}>
+                  Sign up
+                </NavLink>
+              </>
+            )}
           </div>
         </div>
       ) : null}
     </header>
   );
-};
-
-export default Navbar;
+}

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FaFacebookF, FaLinkedinIn, FaRedditAlien, FaXTwitter } from 'react-icons/fa6';
+import FooterDisclaimer from './FooterDisclaimer';
 
 const groupedFooter = [
   {
@@ -70,6 +71,7 @@ const Footer = () => {
   return (
     <footer className="border-t border-[#d8dde6] bg-[#eef2f6] text-[#101828]">
       <div className="mx-auto max-w-[1180px] px-6 py-12">
+        <FooterDisclaimer />
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
           {columns.map((col, index) => (
             <div key={`col-${index}`} className="space-y-7">
@@ -94,7 +96,7 @@ const Footer = () => {
         <div className="mt-10 border-t border-[#d8dde6] pt-5">
           <div className="flex flex-wrap items-center justify-between gap-4 text-[12px] text-[#6c7484]">
             <div className="flex flex-wrap items-center gap-5">
-              <span>© 2026 Coinbase</span>
+              <span>© 2026 Crypto App (student demo)</span>
               <a href="#" className="hover:text-[#0052ff]">Privacy</a>
               <a href="#" className="hover:text-[#0052ff]">Terms & Conditions</a>
             </div>
